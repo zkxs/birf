@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use bstr::ByteVec;
 use bstr::ByteSlice;
 use identity_hash::BuildIdentityHasher;
 use xxhash_rust::xxh3::xxh3_64;
@@ -9,6 +10,8 @@ use xxhash_rust::xxh3::xxh3_64;
 use alphabet::*;
 
 mod alphabet;
+
+const PRINT_FLAG: usize = 0x03FFFF80;
 
 fn main() {
     let mut birf = Birf::default();
@@ -76,15 +79,22 @@ impl Birf {
             } else {
                 unsafe { *buffer.last_mut().unwrap_unchecked() = FIRST_CHAR; }
             }
+
+            if self.count & PRINT_FLAG == 0 {
+                println!("{}", self.count);
+            }
         }
     }
 
     #[inline(always)]
     fn hash(&mut self, buffer: &[u8], count: usize) -> bool {
         let hash = xxh3_64(buffer);
+
+        // debug print what we're presently doing
+        //println!("{:016X} {} \"{}\"", hash, count, buffer.to_str().unwrap());
+
         let collision = self.map.insert(hash, count);
         if let Some(collision) = collision {
-            
             println!("{:016X} \"{}\" \"{}\"", hash, lookup(collision), buffer.to_str().unwrap());
             true
         } else {
@@ -93,7 +103,47 @@ impl Birf {
     }
 }
 
-fn lookup(count: usize) -> String {
-    //TODO: map collision index back to collision text
-    format!("{count}")
+fn lookup(mut count: usize) -> String {
+    if count == 0 {
+        "".to_string()
+    } else if count == 1 {
+        (FIRST_CHAR as char).to_string()
+    } else {
+        count -= 1;
+        let len = CHARS.len() + 1;
+        let mut buffer = Vec::new();
+        while count != 0 {
+            let div = count / len;
+            let rem = count % len;
+            buffer.push(nth_char(rem));
+            count = div;
+        }
+        buffer.reverse();
+        buffer.into_string().unwrap()
+    }
+}
+
+fn nth_char(n: usize) -> u8 {
+    if n == 0 {
+        FIRST_CHAR
+    } else {
+        CHARS[n - 1]
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_lookup() {
+        assert_eq!(lookup(0), "");
+        assert_eq!(lookup(1), "\t");
+        assert_eq!(lookup(2), " ");
+        assert_eq!(lookup(96), "~");
+        assert_eq!(lookup(97), " \t");
+        assert_eq!(lookup(1920), "2~");
+        assert_eq!(lookup(186981), "3:c");
+        assert_eq!(lookup(192000), "3n~");
+    }
 }
