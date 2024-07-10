@@ -41,7 +41,7 @@ impl Birf {
         loop {
             for char in CHARS {
                 collision_found |= self.hash(&buffer);
-                *buffer.last_mut().unwrap() = char;
+                unsafe { *buffer.last_mut().unwrap_unchecked() = char; }
             }
             if collision_found || self.hash(&buffer) {
                 return;
@@ -69,7 +69,7 @@ impl Birf {
                 }
                 buffer.push(FIRST_CHAR);
             } else {
-                *buffer.last_mut().unwrap() = FIRST_CHAR;
+                unsafe { *buffer.last_mut().unwrap_unchecked() = FIRST_CHAR; }
             }
         }
     }

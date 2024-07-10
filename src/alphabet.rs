@@ -1,3 +1,5 @@
+use std::hint::unreachable_unchecked;
+
 // there are 128 ascii characters (including NUL)
 // the first 32 are non-printing (except TAB), so there's 31 we won't use
 // the last one (DEL) is non-printing, so there's 1 we won't use
@@ -199,6 +201,6 @@ pub fn increment_char(char: u8) -> Option<u8> {
         b'|' => Some(b'}'),
         b'}' => Some(b'~'),
         b'~' => None,
-        _ => unreachable!()
+        _ => unsafe { unreachable_unchecked() }
     }
 }
