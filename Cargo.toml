@@ -1,0 +1,9 @@
+[package]
+name = "birf"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+identity-hash = "0.1"
+bstr = "1"
