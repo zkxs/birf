@@ -17,13 +17,16 @@ fn main() {
 }
 
 struct Birf {
-    map: HashMap<u64, Vec<u8>, BuildIdentityHasher<u64>>,
+    map: HashMap<u64, usize, BuildIdentityHasher<u64>>,
+    /// always the index of the NEXT string to hash
+    count: usize,
 }
 
 impl Default for Birf {
     fn default() -> Self {
         Self {
             map: HashMap::with_hasher(BuildIdentityHasher::<u64>::default()),
+            count: 1,
         }
     }
 }
@@ -33,19 +36,21 @@ impl Birf {
         let mut buffer: Vec<u8> = Vec::new();
 
         // insert the empty string
-        self.map.insert(xxh3_64(&[]), Vec::new());
+        self.map.insert(xxh3_64(&[]), 0);
 
         // start with the first char
         buffer.push(FIRST_CHAR);
         let mut collision_found = false;
         loop {
-            for char in CHARS {
-                collision_found |= self.hash(&buffer);
+            for (index, char) in CHARS.into_iter().enumerate() {
+                collision_found |= self.hash(&buffer, self.count + index);
                 unsafe { *buffer.last_mut().unwrap_unchecked() = char; }
             }
-            if collision_found || self.hash(&buffer) {
+            self.count += CHARS.len();
+            if collision_found || self.hash(&buffer, self.count) {
                 return;
             }
+            self.count += 1;
 
             // we just finished a run of the LSB, so we need to carry now
             // the current last char needs to get bumped by one
@@ -75,15 +80,20 @@ impl Birf {
     }
 
     #[inline(always)]
-    fn hash(&mut self, buffer: &[u8]) -> bool {
+    fn hash(&mut self, buffer: &[u8], count: usize) -> bool {
         let hash = xxh3_64(buffer);
-        // println!("{:016X} \"{}\" ", hash, buffer.to_str().unwrap(), );
-        let collision = self.map.insert(hash, buffer.to_vec());
+        let collision = self.map.insert(hash, count);
         if let Some(collision) = collision {
-            println!("{:016X} \"{}\" \"{}\"", hash, collision.to_str().unwrap(), buffer.to_str().unwrap());
+            
+            println!("{:016X} \"{}\" \"{}\"", hash, lookup(collision), buffer.to_str().unwrap());
             true
         } else {
             false
         }
     }
+}
+
+fn lookup(count: usize) -> String {
+    //TODO: map collision index back to collision text
+    format!("{count}")
 }
