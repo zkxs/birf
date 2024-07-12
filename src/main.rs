@@ -1,3 +1,7 @@
+// Copyright 2024 Michael Ripley
+// This file is part of birf.
+// birf is licensed under the GPL-3.0 license (see LICENSE file for details).
+
 #![feature(hash_raw_entry)]
 
 use std::collections::HashMap;
